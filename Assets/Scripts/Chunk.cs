@@ -11,26 +11,33 @@ public class Chunk : MonoBehaviour {
     private float[,,] chunk;
     private float thresh = 80;
     public bool filled = false;
+    public int numverts = 0;
+    public List<Vector3> verts;
+    private List<int> tris;
     GameObject model;
-    List<MeshFilter> meshFilters = new List<MeshFilter>();
     List<GameObject> faces;
 
 	public void GenChunk(int x , int z)
     {
         model = new GameObject();
-
-        faces = new List<GameObject>();
+        verts = new List<Vector3>();
+        tris = new List<int>();
         
         x = x * 15;
         z = z * 15;
+
+        model.transform.position = new Vector3(x, 0, z);
 
         chunk = new float[width + 2, heigth, length + 2];
 
         for(var i = -1; i < width + 1; i++)
         {
-            for(var j = 0; j < heigth; j++)
+            for(var k = -1; k < length; k++)
             {
-                for(var k = -1; k < length + 1; k++)
+                float ground = Noise.GenerateNoise(x + i,z + k, 1);
+                chunk[i + 1,(int) ground, k + 1] = 255;
+
+                for(var j = 0; j < (int) ground; j++)
                 {
                     genType(x, z, i, j, k);
                 }
@@ -56,32 +63,17 @@ public class Chunk : MonoBehaviour {
         MeshFilter mesh = model.AddComponent<MeshFilter>();
         Renderer rend = model.AddComponent<MeshRenderer>();
         MeshCollider collider = model.AddComponent<MeshCollider>();
-        CombineInstance[] combine = new CombineInstance[meshFilters.Count];
-        int i = 0;
-        while (i < meshFilters.Count)
-        {
-            combine[i].mesh = meshFilters[i].sharedMesh;
-            combine[i].transform = meshFilters[i].transform.localToWorldMatrix;
-            i++;
-        }
+
         model.GetComponent<MeshFilter>().mesh = new Mesh();
-        model.GetComponent<MeshFilter>().mesh.CombineMeshes(combine);
+        mesh.mesh.vertices = verts.ToArray();
+        mesh.mesh.triangles = tris.ToArray();
+
         model.gameObject.SetActive(true);
         rend.material.color = Color.grey;
         mesh.mesh.RecalculateNormals();
         collider.sharedMesh = mesh.sharedMesh;
-        DelFaces();
     }
 
-    public void DelFaces()
-    {
-        foreach(MeshFilter item in meshFilters)
-        {
-            Destroy(item.transform.gameObject);
-        }
-        faces.Clear();
-        //filled = false;
-    }
     public void DelChunk()
     {
         model.gameObject.SetActive(false);
@@ -90,106 +82,151 @@ public class Chunk : MonoBehaviour {
 
     private void GenBlock(int posX, int posY, int posZ, int x, int z)
     {
+
         if (chunk[posX, posY, posZ] >= thresh)
         {
             if (posX > 0 && chunk[posX - 1, posY, posZ] < thresh)
             {
-                GameObject face = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                face.transform.position = new Vector3(posX - .5f + x, posY, posZ + z);
-                face.transform.rotation = Quaternion.Euler(0, 90, 0);
-                face.gameObject.SetActive(false);
-                meshFilters.Add(face.GetComponent<MeshFilter>());
+                verts.Add(new Vector3(-0.5f + posX, -0.5f + posY, -0.5f + posZ));
+                verts.Add(new Vector3(-0.5f + posX, -0.5f + posY, 0.5f + posZ));
+                verts.Add(new Vector3(-0.5f + posX, 0.5f + posY, -0.5f + posZ));
+                verts.Add(new Vector3(-0.5f + posX, 0.5f + posY, 0.5f + posZ));
+
+                numverts += 4;
+
+                tris.AddRange(new int[6]{ numverts - 2, numverts - 4, numverts - 3, numverts - 2, numverts - 3, numverts - 1 });
+
             }
             if (posX <= 15 && chunk[posX + 1, posY, posZ] < thresh)
             {
-                GameObject face = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                face.transform.position = new Vector3(posX + .5f + x, posY, posZ + z);
-                face.transform.rotation = Quaternion.Euler(0, -90, 0);
-                face.gameObject.SetActive(false);
-                meshFilters.Add(face.GetComponent<MeshFilter>());
+                Vector3[] vertices = new Vector3[4];
+                vertices[0] = new Vector3(0.5f + posX, -0.5f + posY, -0.5f + posZ);
+                vertices[1] = new Vector3(0.5f + posX, -0.5f + posY, 0.5f + posZ);
+                vertices[2] = new Vector3(0.5f + posX, 0.5f + posY, -0.5f + posZ);
+                vertices[3] = new Vector3(0.5f + posX, 0.5f + posY, 0.5f + posZ);
+
+                verts.AddRange(vertices);
+
+                numverts += 4;
+
+                tris.AddRange(new int[6] { numverts - 2, numverts - 3, numverts - 4, numverts - 2, numverts - 1, numverts - 3 });
+
             }
             if (posY > 0 && chunk[posX, posY - 1, posZ] < thresh)
             {
-                GameObject face = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                face.transform.position = new Vector3(posX + x, posY - .5f, posZ + z);
-                face.transform.rotation = Quaternion.Euler(-90, 0, 0);
-                face.gameObject.SetActive(false);
-                meshFilters.Add(face.GetComponent<MeshFilter>());
+                Vector3[] vertices = new Vector3[4];
+                vertices[0] = new Vector3(0.5f + posX, -0.5f + posY, -0.5f + posZ);
+                vertices[1] = new Vector3(0.5f + posX, -0.5f + posY, 0.5f + posZ);
+                vertices[2] = new Vector3(-0.5f + posX, -0.5f + posY, -0.5f + posZ);
+                vertices[3] = new Vector3(-0.5f + posX, -0.5f + posY, 0.5f + posZ);
+
+                verts.AddRange(vertices);
+
+                numverts += 4;
+
+                tris.AddRange(new int[6] { numverts - 2, numverts - 4, numverts - 3, numverts - 2, numverts - 3, numverts - 1 });
+
             }
             if (posY < 254 && chunk[posX, posY + 1, posZ] < thresh)
             {
-                GameObject face = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                face.transform.position = new Vector3(posX + x, posY + .5f, posZ + z);
-                face.transform.rotation = Quaternion.Euler(90, 0, 0);
-                face.gameObject.SetActive(false);
-                meshFilters.Add(face.GetComponent<MeshFilter>());
+                Vector3[] vertices = new Vector3[4];
+                vertices = new Vector3[4];
+                vertices[0] = new Vector3(0.5f + posX, 0.5f + posY, -0.5f + posZ);
+                vertices[1] = new Vector3(0.5f + posX, 0.5f + posY, 0.5f + posZ);
+                vertices[2] = new Vector3(-0.5f + posX, 0.5f + posY, -0.5f + posZ);
+                vertices[3] = new Vector3(-0.5f + posX, 0.5f + posY, 0.5f + posZ);
+
+                verts.AddRange(vertices);
+
+                numverts += 4;
+
+                tris.AddRange(new int[6] { numverts - 2, numverts - 3, numverts - 4, numverts - 2, numverts - 1, numverts - 3 });
+
             }
             if (posZ > 0 && chunk[posX, posY, posZ - 1] < thresh)
             {
-                GameObject face = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                face.transform.position = new Vector3(posX + x, posY, posZ - .5f + z);
-                face.gameObject.SetActive(false);
-                meshFilters.Add(face.GetComponent<MeshFilter>());
+                Vector3[] vertices = new Vector3[4];
+                vertices = new Vector3[4];
+                vertices[0] = new Vector3( 0.5f + posX, -0.5f + posY, -0.5f + posZ);
+                vertices[1] = new Vector3(-0.5f + posX, -0.5f + posY, -0.5f + posZ);
+                vertices[2] = new Vector3( 0.5f + posX, 0.5f + posY, -0.5f + posZ);
+                vertices[3] = new Vector3(-0.5f + posX, 0.5f + posY, -0.5f + posZ);
+
+                verts.AddRange(vertices);
+
+                numverts += 4;
+
+                tris.AddRange(new int[6] { numverts - 2, numverts - 4, numverts - 3, numverts - 2, numverts - 3, numverts - 1 });
+
             }
             if (posZ <= 15 && chunk[posX, posY, posZ + 1] < thresh)
             {
-                GameObject face = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                face.transform.position = new Vector3(posX + x, posY, posZ + .5f + z);
-                face.transform.rotation = Quaternion.Euler(0, 180, 0);
-                face.gameObject.SetActive(false);
-                meshFilters.Add(face.GetComponent<MeshFilter>());
+                Vector3[] vertices = new Vector3[4];
+                vertices = new Vector3[4];
+                vertices[0] = new Vector3(0.5f + posX, -0.5f + posY, 0.5f + posZ);
+                vertices[1] = new Vector3(-0.5f + posX, -0.5f + posY, 0.5f + posZ);
+                vertices[2] = new Vector3(0.5f + posX, 0.5f + posY, 0.5f + posZ);
+                vertices[3] = new Vector3(-0.5f + posX, 0.5f + posY, 0.5f + posZ);
+
+                verts.AddRange(vertices);
+
+                numverts += 4;
+
+                tris.AddRange(new int[6] { numverts - 2, numverts - 3, numverts - 4, numverts - 2, numverts - 1, numverts - 3 });
+
             }
             if (posY == 254)
             {
-                GameObject face = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                face.transform.position = new Vector3(posX + x, posY + .5f, posZ + z);
-                face.transform.rotation = Quaternion.Euler(90, 0, 0);
-                face.gameObject.SetActive(false);
-                meshFilters.Add(face.GetComponent<MeshFilter>());
+                Vector3[] vertices = new Vector3[4];
+                vertices = new Vector3[4];
+                vertices[0] = new Vector3(0.5f + posX, 0.5f + posY, -0.5f + posZ);
+                vertices[1] = new Vector3(0.5f + posX, 0.5f + posY, 0.5f + posZ);
+                vertices[2] = new Vector3(-0.5f + posX, 0.5f + posY, -0.5f + posZ);
+                vertices[3] = new Vector3(-0.5f + posX, 0.5f + posY, 0.5f + posZ);
+
+                verts.AddRange(vertices);
+
+                numverts += 4;
+
+                tris.AddRange(new int[6] { numverts - 2, numverts - 3, numverts - 4, numverts - 2, numverts - 1, numverts - 3 });
+
             }
         }
     }
 
     private float genNoise(int x, int z, int posX, int posY, int posZ)
     {
-
         double total = 0;
         int frequency = 1;
-        double amplitude = 3;
+        double amplitude = 1;
         double maxValue = 0;
         double persistence = 4;
-        double octaves = 1;
+        double octaves = 2;
         for(int i = 0; i< octaves; i++)
         {
-            total += Simplex.Noise.CalcPixel3D((x + posX) * frequency,  (posY * frequency), (z + posZ) * frequency, scale);
+            total += Simplex.Noise.CalcPixel3D((x + posX) * frequency,  (posY * frequency), (z + posZ) * frequency, scale) / amplitude;
             maxValue += amplitude;
 
             amplitude *= persistence;
             frequency *= 2;
         }
         return (float) (total/maxValue);
+
     }
 
     private void genType(int x, int z, int i, int j, int k)
     {
-        float noise = genNoise(x, z, i, j, k);
-        i += 1;
-        k += 1;
-        if (j < 1)
+        if(j < 3)
         {
-            chunk[i, j, k] = 255;
-        }
-        if (j < 3)
-        {
-            chunk[i, j, k] = Random.Range(0, 160);
-        }
-        else if (noise < (30 - j / 4))
-        {
-            chunk[i, j, k] = noise + 50;
+            chunk[i + 1, j, k + 1] = 255;
         }
         else
         {
-            chunk[i, j, k] = (heigth - (j)) - noise;
+            chunk[i + 1, j, k + 1] = genNoise(x, z, i, j, k);
+            if(chunk[i + 1, j, k + 1] > 100)
+            {
+                Debug.Log(chunk[i + 1, j, k + 1]);
+            }
         }
     }
 }

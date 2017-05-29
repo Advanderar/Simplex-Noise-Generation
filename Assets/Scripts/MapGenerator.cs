@@ -14,7 +14,7 @@ public class MapGenerator : MonoBehaviour {
         Vector3 currPos = player.transform.position;
         Vector3 chunkPos = new Vector3(((int)currPos.x) / 15, ((int)currPos.y) / 15, ((int)currPos.z) / 15);
 
-        size = 4;
+        size = 1;
 
         world = new Chunk[256,256];
         int seed = Simplex.Noise.Seed;
@@ -37,7 +37,7 @@ public class MapGenerator : MonoBehaviour {
         Vector3 chunkPos = new Vector3(((int) currPos.x) / 15, ((int)currPos.y) / 15, ((int)currPos.z) / 15);
         if(chunkPos.x != prevChunk.x || chunkPos.z != prevChunk.z)
         {
-            StartCoroutine(chunkUpdate(chunkPos));
+            //StartCoroutine(chunkUpdate(chunkPos));
         }
 
     }

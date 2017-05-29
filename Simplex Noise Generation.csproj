@@ -87,6 +87,7 @@
     <Compile Include="Assets\Scripts\Block.cs" />
     <Compile Include="Assets\Scripts\Chunk.cs" />
     <Compile Include="Assets\Scripts\MapGenerator.cs" />
+    <Compile Include="Assets\Scripts\Noise.cs" />
     <Compile Include="Assets\Scripts\Simplex\Noise.cs" />
     <Compile Include="Assets\Scripts\Simplex\Properties\AssemblyInfo.cs" />
   </ItemGroup>
